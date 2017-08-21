@@ -19,14 +19,18 @@ object TagsPerUser {
       * Expected parameters:
       * (0) win -> if run on windows, creates the spark context acordingly (only for testing)
       * (1) local -> tell the spark context to run locally
-      * (2)
+      // THESE SHOULD BE IN A PROPERTIES FILE NOT ARGUMENTS:
+      * (2) jdbc connection url e.g: "jdbc:postgresql://198.123.43.24:5432/kockpit"
+      * (3) database user
+      * (4) database password
+      * (5) table name
       *
       */
     val LOG = LoggerFactory.getLogger(getClass)
     //Property for running locally on windows
-    if (args.length<2)
+    if (args.length<5)
     {
-      LOG.error("Incorrect number of parameters. Expecting 2, got "+args.length+1)
+      LOG.error("Incorrect number of parameters. Expecting 6, got "+args.length+1)
       sys.exit(1)
     }
     if(args(0).equals("win"))
@@ -66,7 +70,7 @@ object TagsPerUser {
       .format("com.databricks.spark.csv")
       .schema(customSchema)
       .option("delimiter", "\t")
-      .csv("C:\\Users\\Ricardo.RuizSaiz\\Desktop\\logs\\2017-08-01-18.tsv")
+      .csv("""C:\Users\Ricardo.RuizSaiz\Desktop\logs\2017-08-01-18.tsv""")
 
     val filteredTagsPerUser = inputData
       .filter(!($"userID".rlike("""/d+""")))
@@ -74,24 +78,26 @@ object TagsPerUser {
       .groupBy($"userID").count()
 
     //Write data to the postgresql table
-    //writeToPostgresql(filteredTagsPerUser,"tagsPerUser")
+    //writeToPostgresql(filteredTagsPerUser,args(5))
 
     filteredTagsPerUser.take(10).foreach(println)
 
   }
 
-  def writeToPostgresql (tableData: DataFrame, tabla : String): Unit =
+  def writeToPostgresql (tableData: DataFrame, tabla : String, args: Array[String]): Unit =
   {
 
     //All this needs to be in a properties file but it is in the TO-DO for now
-    val url = "jdbc:postgresql://198.123.43.24:5432/kockpit"
+    val url = args(2)
     val prop = new Properties()
-    prop.setProperty("user","postgres")
-    prop.setProperty("password","password")
+    prop.setProperty("user",args(3))
+    prop.setProperty("password",args(4))
     prop.setProperty("driver","org.postgresql.Driver")
-    prop.setProperty("mode","overwrite")
 
-    tableData.write.jdbc(url, tabla, prop)
+    tableData
+      .write
+      .mode(SaveMode.Overwrite)
+      .jdbc(url, tabla, prop)
   }
 
 }
