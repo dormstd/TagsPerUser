@@ -4,7 +4,6 @@ import java.util.Properties
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions.regexp_extract
 import org.slf4j.LoggerFactory
 
 /**
@@ -24,13 +23,14 @@ object TagsPerUser {
       * (3) database user
       * (4) database password
       * (5) table name
+      * (6) source files path e.g: C:\Users\Ricardo.RuizSaiz\Desktop\testdata\
       *
       */
     val LOG = LoggerFactory.getLogger(getClass)
     //Property for running locally on windows
-    if (args.length<5)
+    if (args.length<6)
     {
-      LOG.error("Incorrect number of parameters. Expecting 6, got "+args.length+1)
+      LOG.error("Incorrect number of parameters. Expecting 7, got "+args.length+1)
       sys.exit(1)
     }
     if(args(0).equals("win"))
@@ -70,7 +70,7 @@ object TagsPerUser {
       .format("com.databricks.spark.csv")
       .schema(customSchema)
       .option("delimiter", "\t")
-      .csv("""C:\Users\Ricardo.RuizSaiz\Desktop\logs\2017-08-01-18.tsv""")
+      .csv(args(6))
 
     val filteredTagsPerUser = inputData
       .filter(!($"userID".rlike("""/d+""")))
